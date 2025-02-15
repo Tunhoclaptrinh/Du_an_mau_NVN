@@ -1,14 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Button, Modal, Table, Checkbox } from 'antd';
+import { Button, Modal, Table, Checkbox, Card, Switch } from 'antd';
 import TaskForm from '../../components/Form/form4todolist';
-
-declare module TodoList {
-    export interface TodoListRecord {
-        TaskName: string;
-        DueDate: string;
-        Status: boolean;
-    }
-}
 
 const TodoList = () => {
     const [tasks, setTasks] = useState<TodoList.TodoListRecord[]>([]);
@@ -17,6 +9,7 @@ const TodoList = () => {
     const [currentTask, setCurrentTask] = useState<TodoList.TodoListRecord | null>(null);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(5);
+    const [viewMode, setViewMode] = useState<'table' | 'card'>('table'); // State để chọn chế độ hiển thị
 
     // Fetch tasks from localStorage on initial load
     useEffect(() => {
@@ -40,11 +33,11 @@ const TodoList = () => {
     }, []);
 
     const handleEdit = useCallback((task: TodoList.TodoListRecord) => {
-        setVisible(true);
-        setIsEdit(true);
         setCurrentTask(task);
+        setIsEdit(true);
+        setVisible(true);
     }, []);
-
+    
     const handleDelete = useCallback((taskToDelete: TodoList.TodoListRecord) => {
         Modal.confirm({
             title: 'Are you sure?',
@@ -63,13 +56,15 @@ const TodoList = () => {
         };
 
         setTasks(prevTasks => {
-            if (isEdit) {
+            if (isEdit && currentTask) {
                 return prevTasks.map(task =>
-                    task.TaskName === currentTask?.TaskName ? newTask : task
+                    task.TaskName === currentTask.TaskName ? newTask : task
                 );
             }
             return [...prevTasks, newTask];
         });
+        
+        setCurrentTask(null);
         setVisible(false);
     }, [isEdit, currentTask]);
 
@@ -124,7 +119,7 @@ const TodoList = () => {
             render: (_: any, record: TodoList.TodoListRecord) => (
                 <div>
                     <Button onClick={() => handleEdit(record)}>Edit</Button>
-                    <Button onClick={() => handleDelete(record)} danger style={{ marginLeft: 10 }}>Delete</Button>
+                    <Button onClick={() => handleDelete(record)} danger style={{ marginLeft: 10 , backgroundColor: "red", color: "white"}}>Delete</Button>
                 </div>
             ),
         },
@@ -132,24 +127,55 @@ const TodoList = () => {
 
     return (
         <div style={{ width: '100%', padding: '20px'}}>
-            <Button type="primary" onClick={handleAdd}>Add Task</Button>
-            <Table
-                dataSource={tasks}
-                columns={columns}
-                rowKey="TaskName"
-                pagination={{
-                    current: page,
-                    pageSize: pageSize,
-                    onChange: (page, pageSize) => {
-                        setPage(page);
-                        setPageSize(pageSize);
-                    },
-                    showSizeChanger: true,
-                    pageSizeOptions: ['5', '10', '20', '50'],
-                }}
-                scroll={{ x: 'max-content' }}  // Bảng nội dung full chiều ngang
-                style={{ marginTop: '20px' }}
-            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Button type="primary" onClick={handleAdd}>Add Task</Button>
+                <Switch 
+                    checkedChildren="Card View" 
+                    unCheckedChildren="Table View" 
+                    checked={viewMode === 'card'} 
+                    onChange={() => setViewMode(prev => prev === 'table' ? 'card' : 'table')} 
+                />
+            </div>
+
+            {viewMode === 'table' ? (
+                <Table
+                    dataSource={tasks}
+                    columns={columns}
+                    rowKey="TaskName"
+                    pagination={{
+                        current: page,
+                        pageSize: pageSize,
+                        onChange: (page, pageSize) => {
+                            setPage(page);
+                            setPageSize(pageSize);
+                        },
+                        showSizeChanger: true,
+                        pageSizeOptions: ['5', '10', '20', '50'],
+                    }}
+                    scroll={{ x: 'max-content' }}
+                    style={{ marginTop: '20px' }}
+                />
+            ) : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', marginTop: '20px', justifyContent: 'center' }}>
+                    {tasks.map((task) => (
+                        <Card 
+                            key={task.TaskName} 
+                            title={<span style={{ textDecoration: task.Status ? 'line-through' : 'none' }}>{task.TaskName}</span>} 
+                            style={{ width: 300, border: task.Status ? '2px solid green' : '1px solid red' }}
+                            actions={[
+                                <Button onClick={() => handleEdit(task)}>Edit</Button>,
+                                <Button onClick={() => handleDelete(task)} danger style={{ backgroundColor: 'red', color: 'white' }}>Delete</Button>
+                            ]}
+                        >
+                            <p><strong>Due Date:</strong> {task.DueDate}</p>
+                            <Checkbox checked={task.Status} onChange={() => toggleComplete(task)}>
+                                {task.Status ? 'Completed' : 'Pending'}
+                            </Checkbox>
+                        </Card>
+                    ))}
+                </div>
+            )}
+
             <Modal
                 title={isEdit ? 'Edit Task' : 'Add Task'}
                 visible={visible}
@@ -157,10 +183,11 @@ const TodoList = () => {
                 footer={null}
             >
                 <TaskForm
+                    key={currentTask?.TaskName || 'new'} 
                     initialValues={{
-                        TaskName: currentTask?.TaskName,
-                        DueDate: currentTask?.DueDate,
-                        Status: currentTask?.Status,
+                        TaskName: currentTask?.TaskName || '',
+                        DueDate: currentTask?.DueDate || '',
+                        Status: currentTask?.Status || false,
                     }}
                     isEdit={isEdit}
                     onFinish={handleFinish}

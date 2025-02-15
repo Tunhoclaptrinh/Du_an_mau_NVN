@@ -40,7 +40,7 @@
 		path: '/todolist',
 		name: 'Todolist',
 		component: './Todolist/Todolist',
-		icon: 'ArrowsAltOutlined',
+		icon: 'UnorderedListOutlined',
 	},
 
 	// DANH MUC HE THONG

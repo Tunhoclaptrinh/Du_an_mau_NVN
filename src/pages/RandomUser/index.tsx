@@ -190,6 +190,13 @@ const RandomUser = () => {
 		getDataUser();
 	}, []);
 
+	// Lấy URL hiện tại
+	const urlParams = new URLSearchParams(window.location.search);
+
+	// Lấy giá trị của tham số "param1"
+	const color1 = urlParams.get('color1');
+	const color2 = urlParams.get('color2');
+
 	const columns: IColumn<RandomUser.Record>[] = [
 		{
 			title: 'First Name',
@@ -269,6 +276,7 @@ const RandomUser = () => {
 					setVisible(true);
 					setIsEdit(false);
 				}}
+				style={{ backgroundColor: color1, color: color2 }}
 			>
 				Add User
 			</Button>
